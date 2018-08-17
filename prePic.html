@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+<body>
+    <div class="content">
+        <img class="img" src="./imgs/pic.jpg">
+    </div>
+</body>
+<script src="./prePic.js"></script>
+<script>
+    window.onload = function () {
+        const dom = document.getElementsByClassName("content")[0];
+        const pc = new Pp(dom);
+        pc.init();
+    }
+</script>
+<style>
+    .innerSegBox {
+        opacity: 0.5;
+    }
+    .content {
+        width: 400px;
+        height: 400px;
+    }
+    .img {
+        width: 100%;
+        height: 100%;
+    }
+    .pp-preview-wrapper {
+        overflow: hidden;
+        position: absolute;
+        left: 0;
+        top: 0;
+        z-index: 2018;
+        margin-left: 10px;
+    }
+    .pp-preview-content {
+        height: 100%;
+    }
+    .pp-preview-picture {
+        position: absolute;
+        width: 800px;
+        height: 800px;
+    }
+    * {
+        margin: 0;
+        padding: 0;
+    }
+</style>
+</html>

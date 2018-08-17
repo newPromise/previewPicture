@@ -213,16 +213,19 @@ class Pp {
             // 获取到
             const mouseDomDistanceY = event.clientY - getPagePos(this.dom).pageY;
             const mouseDomDistanceX = event.clientX - getPagePos(this.dom).pageX;
-            const isXOverflow = getPagePos(this.dom).pageX + parseInt(getStyle(this.dom, "width")) - getPagePos(this.innerSeg).pageX - this.innerSegConfig.width <= 0;
+            const isXOverflowRig = event.clientX + (this.innerSegConfig.width / 2) > getPagePos(this.dom).pageX + parseInt(getStyle(this.dom, "width"));
+            // 内部预览图块的距离左边最大left
+            const innerSegMaxLeft = getPagePos(this.dom).pageX + parseInt(getStyle(this.dom, "width")) - this.innerSegConfig.width;
+            const innerSegMinLeft = getPagePos(this.dom).pageX;
+            const isXOverflowLef = event.clientX - this.innerSegConfig.width / 2 < getPagePos(this.dom).pageX;
             const isYOverflow = mouseDomDistanceY + this.innerSeg.offsetHeight - this.dom.offsetHeight > 0;
             const previewPic = document.getElementsByClassName("pp-preview-picture")[0];
-            // if (mouseDomDistanceX < 0 || (mouseDomDistanceX > parseInt(getStyle(this.dom, "width")))) {
-            //     console.log("mouseDomDistanceX", mouseDomDistanceX);
-            //     setStyle(this.innerSeg, 'display', 'none');
-            //     return;
-            // }
-            if (isXOverflow) {
-                setStyle(this.innerSeg, "left", getPagePos(this.dom).pageX + parseInt(getStyle(this.dom, "width")) - this.innerSegConfig.width  + "px");
+            if (isXOverflowRig) {
+                setStyle(this.innerSeg, "left", innerSegMaxLeft  + "px");
+                return;
+            }
+            if (isXOverflowLef) {
+                setStyle(this.innerSeg, "left", innerSegMinLeft + "px");
                 return;
             }
             console.log(getStyle(this.dom, "width"), mouseDomDistanceX);

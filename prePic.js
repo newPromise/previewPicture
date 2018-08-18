@@ -159,9 +159,16 @@ class Pp {
         this.mouseMoveY = 0;
         this.mouseMoveX = 0;
         this.innerSeg = null;
+        this.ppContent = null;
+        this.ppPicture = null;
         this.innerSegConfig = Object.assign(defaultInnerSegConfig, innerSegConfig);
         this.zoomRatioX = 0; // x 方向的放大系数
         this.zoomRatioY = 0; // y 方向的放大系数
+        this.domPos = {
+            pageX: 0,
+            pageY: 0
+        };
+        this.domSty = {};
     }
     init (){
         this.listenMouseMove();
@@ -170,15 +177,20 @@ class Pp {
     // 初始元素样式
     initStyle() {
         setStyle(this.dom, 'cursor', 'all-scroll');
+        this.domPos.pageX = getPagePos(this.dom).pageX;
+        this.domPos.pageY = getPagePos(this.dom).pageY;
+        this.domSty.width = getStyle(this.dom, "width");
+        this.domSty.height = getStyle(this.dom, "height");
     }
     // 计算放大图像比例
     getZoomRadio() {
         const preImg = document.getElementsByClassName("pp-preview-picture")[0];
-        this.zoomRatioX = parseInt(getStyle(preImg, "width")) / parseInt(getStyle(this.originPicture, "width"));
-        this.zoomRatioY = parseInt(getStyle(preImg, "height")) / parseInt(getStyle(this.originPicture, "height"));
+        this.zoomRatioX = parseInt(getStyle(this.ppPicture, "width")) / this.innerSegConfig.width;
+        this.zoomRatioY = parseInt(getStyle(this.ppPicture, "height")) / this.innerSegConfig.height;
     }
     // 添加预览图dom元素
     addBoxDom() {
+        const that = this;
         this.innerSeg = document.createElement("div");
         const previewContent = document.createElement("div");
         const preImgCon = document.createElement("div");
@@ -191,35 +203,57 @@ class Pp {
                 setStyle(this.innerSeg, sty, this.innerSegConfig[sty]);
             }
         }
-        setStyle(previewContent, "width", getStyle(this.dom, "width"));
-        setStyle(previewContent, "height", getStyle(this.dom, "height"));
-        setStyle(previewContent, "left", (getPagePos(this.dom).pageX + parseInt(getStyle(this.dom, "width"))) + "px");
-        setStyle(previewContent, "top", (getPagePos(this.dom).pageY) + "px");
+        setStyle(previewContent, "width", this.domSty.width);
+        setStyle(previewContent, "height", this.domSty.height);
+        setStyle(previewContent, "left", (this.domPos.pageX + parseInt(this.domSty.width)) + "px");
+        setStyle(previewContent, "top", (this.domPos.pageY) + "px");
         addClass(preImgCon, "pp-preview-content");
         addClass(previewContent, "pp-preview-wrapper");
         addClass(preImg, "pp-preview-picture");
         preImg.setAttribute("src", this.originPicSrc);
         this.dom.appendChild(this.innerSeg);
-        preImgCon.appendChild(preImg);
+        // preImgCon.appendChild(preImg);
         previewContent.appendChild(preImgCon);
         document.body.appendChild(previewContent);
+        this.ppContent = previewContent;
+        this.ppPicture = preImgCon;
         this.getZoomRadio();
+        // 鼠标移出内部块时隐藏 
+        on(this.innerSeg, "mouseout", function () {
+            that.togBlockShow(false);
+        });
+    }
+    // 切换显示块状态
+    togBlockShow (isShow) {
+        if (typeof isShow !== "boolean") {
+            return;
+        }
+        if (this.innerSeg && this.ppContent) {
+            const displayStyle = isShow ? "block" : "none";
+            setStyle(this.innerSeg, "display", displayStyle);
+        } else {
+            this.addBoxDom();
+        }
     }
     // 监听鼠标移动
     listenMouseMove() {
+        const that = this;
+        const { pageX: domPageX, pageY: domPageY } = this.domPos;
         const getMouseSite = (e) => {
-            console.log("移动移动");
             const event = e || window.e;
-            // 获取到
-            const mouseDomDistanceY = event.clientY - getPagePos(this.dom).pageY;
-            const mouseDomDistanceX = event.clientX - getPagePos(this.dom).pageX;
-            const isXOverflowRig = event.clientX + (this.innerSegConfig.width / 2) > getPagePos(this.dom).pageX + parseInt(getStyle(this.dom, "width"));
-            // 内部预览图块的距离左边最大left
-            const innerSegMaxLeft = getPagePos(this.dom).pageX + parseInt(getStyle(this.dom, "width")) - this.innerSegConfig.width;
-            const innerSegMinLeft = getPagePos(this.dom).pageX;
-            const isXOverflowLef = event.clientX - this.innerSegConfig.width / 2 < getPagePos(this.dom).pageX;
+            const mouseDomDistanceY = event.clientY - domPageY - (this.innerSegConfig.height / 2);
+            const mouseDomDistanceX = event.clientX - domPageX - (this.innerSegConfig.width / 2);
+            const isXOverflowRig = event.clientX + (this.innerSegConfig.width / 2) > domPageX + parseInt(this.domSty.width);
+            const isYOverflowTop = event.clientY - (this.innerSegConfig.height / 2) < domPageY;
+            const isYOverflowBot = event.clientY + (this.innerSegConfig.height / 2) > domPageY + parseInt(this.domSty.height);
+            const innerSegMaxLeft = domPageX + parseInt(this.domSty.width) - this.innerSegConfig.width;
+            const innerSegMinLeft = domPageX;
+            const innerSegMinTop =  domPageY;
+            const innerSegMaxTop =  domPageY + (parseInt(this.domSty.height) - this.innerSegConfig.height);
+            const isXOverflowLef = event.clientX - this.innerSegConfig.width / 2 < domPageX;
             const isYOverflow = mouseDomDistanceY + this.innerSeg.offsetHeight - this.dom.offsetHeight > 0;
             const previewPic = document.getElementsByClassName("pp-preview-picture")[0];
+            // 限制移动范围
             if (isXOverflowRig) {
                 setStyle(this.innerSeg, "left", innerSegMaxLeft  + "px");
                 return;
@@ -228,28 +262,21 @@ class Pp {
                 setStyle(this.innerSeg, "left", innerSegMinLeft + "px");
                 return;
             }
-            console.log(getStyle(this.dom, "width"), mouseDomDistanceX);
-            
-            setStyle(previewPic, "left", `${-mouseDomDistanceX * this.zoomRatioX}px`);
-            setStyle(previewPic, "top", `${-mouseDomDistanceY * this.zoomRatioY}px`);
+            if (isYOverflowTop) {
+                setStyle(this.innerSeg, "top", innerSegMinTop + "px");
+                return;
+            }
+            if (isYOverflowBot) {
+                setStyle(this.innerSeg, "top", innerSegMaxTop + "px");
+                return;
+            }
+            setStyle(this.ppPicture, "backgroundPositionY", `${-mouseDomDistanceY * this.zoomRatioY}px`);
+            setStyle(this.ppPicture, "backgroundPositionX", `${-mouseDomDistanceX * this.zoomRatioX}px`);
             setStyle(this.innerSeg, "left", event.clientX - this.innerSegConfig.width / 2 + 'px');
             setStyle(this.innerSeg, 'top', event.clientY - this.innerSegConfig.height / 2 + 'px');
             
         };
-        const segEl = null;
-        const that = this;
-        const toggleInnerBox = (displaySty) => {
-            if (this.innerSeg) {
-                // if (that.dom.contains(segEl.target)) {
-                //     setStyle(this.innerSeg, 'display', 'block');
-                // } else {
-                    setStyle(this.innerSeg, 'display', displaySty);
-                // }
-            } else {
-                this.addBoxDom();
-            }
-        };
         on(this.dom, 'mousemove', getMouseSite);
-        on(this.dom, 'mouseenter', function () { toggleInnerBox('block'); });
+        on(this.dom, 'mouseenter', function () { that.togBlockShow(true); });
     }
 }
